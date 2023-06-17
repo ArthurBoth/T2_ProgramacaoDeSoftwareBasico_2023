@@ -177,10 +177,13 @@ unsigned char** grayscale(Img* pic)
 	RGBPixel (*pixels)[pic->width] = (RGBPixel(*)[pic->height]) pic->img;
 	
 	//unsigned char custa apenas um byte e vai de 0 a 255
-	unsigned char **gray = malloc(pic->width * sizeof(unsigned char*));
+	unsigned char **gray = malloc(pic->height * sizeof(unsigned char*));
+	for (i=0;i<pic->height;i++){
+		gray[i] = malloc(pic->width * sizeof(unsigned char));
+	}
 	
-	for (i=0;i<pic->width;i++){
-		for (j=0;j<pic->height;j++){
+	for (i=0;i<pic->height;i++){
+		for (j=0;j<pic->width;j++){
 			gray[i][j] = (0.3 * (pixels[i][j].r)) + (0.59 * (pixels[i][j].g)) + (0.11 * (pixels[i][j].b));;
 		}
 	}
