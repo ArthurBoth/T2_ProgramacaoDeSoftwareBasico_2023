@@ -190,3 +190,25 @@ unsigned char** grayscale(Img* pic)
 	
 	return gray;
 }
+
+unsigned char* avgColour(Img* pic, int height, int width)
+{
+	int i,j;
+    int red = 0, green = 0, blue = 0;
+    int size = height * width;
+	RGBPixel (*pixels)[pic->width] = (RGBPixel(*)[pic->height]) pic->img;
+    unsigned char *avg = malloc(3 * sizeof(unsigned char)); // 0 para RED, 1 para GREEN e 2 para BLUE
+    
+    for (i=0;i<(pic->height);i++){
+        for (j=0;j<(pic->width);j++){
+            red += pixels[i][j].r;
+            green += pixels[i][j].g;
+            blue += pixels[i][j].b;
+        }
+    }
+    avg[0] = (unsigned char) red/size;
+    avg[1] = (unsigned char) green/size;
+    avg[2] = (unsigned char) blue/size;
+
+    return avg;
+}
