@@ -175,20 +175,21 @@ void drawNode(QuadNode* n)
 
 unsigned char** grayscale(Img* pic,int x, int y,int height, int width)
 {
-	int i,j;
+	int i,j,aux;
 	RGBPixel (*pixels)[pic->width] = (RGBPixel(*)[pic->height]) pic->img;
 	
-	unsigned char **gray = malloc(pic->height * sizeof(unsigned char*));
+	unsigned char **gray = malloc(height * sizeof(unsigned char*));
 	for (i=0;i<height;i++){
 		gray[i] = malloc(width * sizeof(unsigned char));
 	}
 	
 	for (i=x;i<(height+x);i++){
 		for (j=y;j<(width+y);j++){
-			gray[i][j] = (0.3 * (pixels[i][j].r)) + (0.59 * (pixels[i][j].g)) + (0.11 * (pixels[i][j].b));;
+            aux = (0.3 * (pixels[i][j].r)) + (0.59 * (pixels[i][j].g)) + (0.11 * (pixels[i][j].b));
+			gray[i][j] = aux;
 		}
 	}
-	
+
 	return gray;
 }
 
@@ -207,9 +208,18 @@ unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
             blue += pixels[i][j].b;
         }
     }
-    avg[0] = (unsigned char) red/size;
-    avg[1] = (unsigned char) green/size;
-    avg[2] = (unsigned char) blue/size;
+
+    avg[0] = (unsigned char) (red/size);
+    avg[1] = (unsigned char) (green/size);
+    avg[2] = (unsigned char) (blue/size);
+
+    // printf("RED: %d\n",red);
+    // printf("GREEN: %d\n",green);
+    // printf("BLUE: %d\n",blue);
+    // printf("SIZE: %d\n",size);
+    // printf("RED/SIZE: %d\n",avg[0]);
+    // printf("GREEN/SIZE: %d\n",avg[1]);
+    // printf("BLUE/SIZE: %d\n",avg[2]);
 
     return avg;
 }
@@ -228,7 +238,7 @@ int* histogram (unsigned char** grayI,int x, int y,int height, int width)
     return hist;
 }
 
-float calcError (Img* pic,int x, int y,int height, int width)
+double calcError (Img* pic,int x, int y,int height, int width)
 {
     unsigned char** gray = grayscale(pic,x,y,height,width);
     int* hist = histogram(gray,x,y,height,width);
@@ -236,28 +246,53 @@ float calcError (Img* pic,int x, int y,int height, int width)
     //***************************************//
 
     int i,j;
-    int avgI = 0, sum = 0, size = (height * width);
-    float error, aux = 1./size;
+    int a = 0, b = 0;
+    int avgI = 0, size = (height * width);
+    double error, aux, sum = 0;
     for (i=0;i<256;i++){
         avgI += (i * hist[i]);
+        // printf("i: %d\n",i);
+        // printf("hist[i]: %d\n",hist[i]);
+        // printf("(i * hist[i]): %d\n",(i * hist[i]));
+        // printf("avgI: %d\n",avgI);
     }
     avgI = avgI/size;
+    // printf("avgI: %d\n",avgI);
 
     for (i=x;i<(height+x);i++){
         for (j=y;j<(width+y);j++){
-            sum += (gray[i][j] - avgI) * (gray[i][j] - avgI);
+            aux = gray[a++][b++];
+            aux = (aux - avgI);
+            sum += aux * aux;
+            printf("i: %d\n",i);
+            printf("j: %d\n",j);
+            printf("gray[i][j]: %d\n",gray[a][b]);
+            printf("avgI: %d\n",avgI);
+            // printf("aux: %d\n",aux);
+            printf("Sum: %d\n",sum);
         }
     }
 
+
+    aux = 1 / size;
     error = sqrt(aux * sum);
 
+    // printf("Size: %d\n",size);
+    // printf("Sum: %d\n",sum);
+    // printf("1/size: %d\n",aux);
+    // printf("(1/size) * sum: %d\n", (aux * sum));
+    // printf("Calc Error: %d\n",error);
+
+    for (i=0;i<height;i++){
+		free(gray[i]);
+	}
     free(gray);
     free(hist);
     return error;
 }
 
-QuadNode* newQuadtree (Img* pic,float minError,int x, int y,int height, int width){
-    float error = calcError(pic,x,y,height,width);
+QuadNode* newQuadtree (Img* pic,double minError,int x, int y,int height, int width){
+    double error = calcError(pic,x,y,height,width);
     unsigned char* avg = avgColour(pic,x,y,height,width);
     QuadNode* raiz = newNode(x,y,width,height);
     raiz->color[0] = avg[0];
