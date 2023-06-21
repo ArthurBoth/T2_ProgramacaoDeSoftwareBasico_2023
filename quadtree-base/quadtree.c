@@ -1,6 +1,7 @@
 #include "quadtree.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -29,22 +30,23 @@ QuadNode* geraQuadtree(Img* pic, float minError)
     // Converte o vetor RGBPixel para uma MATRIZ que pode acessada por pixels[linha][coluna]
     RGBPixel (*pixels)[pic->width] = (RGBPixel(*)[pic->height]) pic->img;
 
-    // Veja como acessar os primeiros 10 pixels da imagem, por exemplo:
+    /* Veja como acessar os primeiros 10 pixels da imagem, por exemplo:
     int i;
-    for(i=0; i<10; i++)
+    for(i=0; i<10; i++){
         printf("%02X %02X %02X\n",pixels[0][i].r,pixels[1][i].g,pixels[2][i].b);
-
+    }
+    */
     int width = pic->width;
     int height = pic->height;
 
     //////////////////////////////////////////////////////////////////////////
-    // Implemente aqui o algoritmo que gera a quadtree, retornando o nodo raiz
+    QuadNode* raiz = newQuadtree(pic,minError,0,0,height,width);
     //////////////////////////////////////////////////////////////////////////
 
 // COMENTE a linha abaixo quando seu algoritmo ja estiver funcionando
 // Caso contrario, ele ira gerar uma arvore de teste com 3 nodos
 
-#define DEMO
+//#define DEMO
 #ifdef DEMO
 
     /************************************************************/
@@ -171,19 +173,18 @@ void drawNode(QuadNode* n)
     // Nodos vazios não precisam ser desenhados... nem armazenados!
 }
 
-unsigned char** grayscale(Img* pic)
+unsigned char** grayscale(Img* pic,int x, int y,int height, int width)
 {
 	int i,j;
 	RGBPixel (*pixels)[pic->width] = (RGBPixel(*)[pic->height]) pic->img;
 	
-	//unsigned char custa apenas um byte e vai de 0 a 255
 	unsigned char **gray = malloc(pic->height * sizeof(unsigned char*));
-	for (i=0;i<pic->height;i++){
-		gray[i] = malloc(pic->width * sizeof(unsigned char));
+	for (i=0;i<height;i++){
+		gray[i] = malloc(width * sizeof(unsigned char));
 	}
 	
-	for (i=0;i<pic->height;i++){
-		for (j=0;j<pic->width;j++){
+	for (i=x;i<(height+x);i++){
+		for (j=y;j<(width+y);j++){
 			gray[i][j] = (0.3 * (pixels[i][j].r)) + (0.59 * (pixels[i][j].g)) + (0.11 * (pixels[i][j].b));;
 		}
 	}
@@ -191,7 +192,7 @@ unsigned char** grayscale(Img* pic)
 	return gray;
 }
 
-unsigned char* avgColour(Img* pic, int height, int width)
+unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
 {
 	int i,j;
     int red = 0, green = 0, blue = 0;
@@ -199,8 +200,8 @@ unsigned char* avgColour(Img* pic, int height, int width)
 	RGBPixel (*pixels)[pic->width] = (RGBPixel(*)[pic->height]) pic->img;
     unsigned char *avg = malloc(3 * sizeof(unsigned char)); // 0 para RED, 1 para GREEN e 2 para BLUE
     
-    for (i=0;i<(pic->height);i++){
-        for (j=0;j<(pic->width);j++){
+    for (i=x;i<(height+x);i++){
+        for (j=y;j<(width+y);j++){
             red += pixels[i][j].r;
             green += pixels[i][j].g;
             blue += pixels[i][j].b;
@@ -211,4 +212,66 @@ unsigned char* avgColour(Img* pic, int height, int width)
     avg[2] = (unsigned char) blue/size;
 
     return avg;
+}
+
+int* histogram (unsigned char** grayI,int x, int y,int height, int width)
+{
+    int i,j;
+    int *hist = malloc(256 * sizeof(int));
+
+    for (i=x;i<(height+x);i++){
+        for (j=y;j<(width+y);j++){
+            hist[grayI[i][j]]++;
+        }
+    }
+
+    return hist;
+}
+
+float calcError (Img* pic,int x, int y,int height, int width)
+{
+    unsigned char** gray = grayscale(pic,x,y,height,width);
+    int* hist = histogram(gray,x,y,height,width);
+
+    //***************************************//
+
+    int i,j;
+    int avgI = 0, sum = 0, size = (height * width);
+    float error, aux = 1./size;
+    for (i=0;i<256;i++){
+        avgI += (i * hist[i]);
+    }
+    avgI = avgI/size;
+
+    for (i=x;i<(height+x);i++){
+        for (j=y;j<(width+y);j++){
+            sum += (gray[i][j] - avgI) * (gray[i][j] - avgI);
+        }
+    }
+
+    error = sqrt(aux * sum);
+
+    free(gray);
+    free(hist);
+    return error;
+}
+
+QuadNode* newQuadtree (Img* pic,float minError,int x, int y,int height, int width){
+    float error = calcError(pic,x,y,height,width);
+    unsigned char* avg = avgColour(pic,x,y,height,width);
+    QuadNode* raiz = newNode(x,y,width,height);
+    raiz->color[0] = avg[0];
+    raiz->color[1] = avg[1];
+    raiz->color[2] = avg[2];
+    if (error < minError){ // condição de parada recursiva
+        raiz->status = CHEIO;
+    } else {
+        raiz->status = PARCIAL;
+        raiz->NW = newQuadtree(pic,minError,x,y,(height/2),(width/2));
+        raiz->NE = newQuadtree(pic,minError,(height/2),y,(height/2),(width/2));
+        raiz->SE = newQuadtree(pic,minError,(height/2),(width/2),(height/2),(width/2));
+        raiz->SW = newQuadtree(pic,minError,x,(width/2),(height/2),(width/2));
+    }
+    free(avg);
+    return raiz;
 }
