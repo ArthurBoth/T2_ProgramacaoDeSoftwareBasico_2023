@@ -178,18 +178,18 @@ unsigned char** grayscale(Img* pic,int x, int y,int height, int width)
 	int i,j,aux;
 	RGBPixel (*pixels)[pic->width] = (RGBPixel(*)[pic->height]) pic->img;
 	
-	unsigned char **gray = malloc(height * sizeof(unsigned char*));
-	for (i=0;i<height;i++){
-		gray[i] = malloc(width * sizeof(unsigned char));
+	unsigned char **gray = malloc(width * sizeof(unsigned char*));
+	for (i=0;i<width;i++){
+		gray[i] = malloc(height * sizeof(unsigned char));
 	}
 	
-	for (i=x;i<(height+x);i++){
-		for (j=y;j<(width+y);j++){
-            aux = (0.3 * (pixels[i][j].r)) + (0.59 * (pixels[i][j].g)) + (0.11 * (pixels[i][j].b));
-			gray[i-x][j-y] = aux;
+	for (i=y;i<(width+y);i++){
+		for (j=x;j<(height+x);j++){
+            aux = (0.3 * (pixels[j][i].r)) + (0.59 * (pixels[j][i].g)) + (0.11 * (pixels[j][i].b));
+			gray[i-y][j-x] = aux;
 		}
 	}
-
+    // printf("grayscale ok\n");
 	return gray;
 }
 unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
@@ -200,8 +200,8 @@ unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
 	RGBPixel (*pixels)[pic->width] = (RGBPixel(*)[pic->height]) pic->img;
     unsigned char *avg = malloc(3 * sizeof(unsigned char)); // 0 para RED, 1 para GREEN e 2 para BLUE
     
-    for (i=x;i<(height+x);i++){
-        for (j=y;j<(width+y);j++){
+    for (i=y;i<(width+y);i++){
+        for (j=x;j<(height+x);j++){
             red += pixels[i][j].r;
             green += pixels[i][j].g;
             blue += pixels[i][j].b;
@@ -220,93 +220,94 @@ unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
     // printf("GREEN/SIZE: %d\n",avg[1]);
     // printf("BLUE/SIZE: %d\n",avg[2]);
 
+    // printf("avgColour ok\n");
     return avg;
 }
 
 int* histogram (unsigned char** grayI,int x, int y,int height, int width)
 {
-    int h,i,j;
+    int h,i,j, aux;
     int *hist = malloc(256 * sizeof(int));
 
     for (i=0;i<256;i++){
         hist[i] = 0;
     }
 
-    for (i=x;i<(height+x);i++){
-        for (j=y;j<(width+y);j++){
-            hist[grayI[i][j]]++;
+    for (i=0;i<(width);i++){
+        for (j=0;j<(height);j++){
+            aux = grayI[i][j];
+            hist[aux]++;
             // printf("grayI: %d\n",grayI[i][j]);
             // printf("hist: %d\n",hist[grayI[i][j]]);
         }
     }
 	
-	for (i=0;i<256;i++){ // imprime a quantidade de pixeis de todas as intensidades
-    printf("hist[%d]: %d\n",i,hist[i]);
-    }
+	// for (i=0;i<256;i++){ // imprime a quantidade de pixeis de todas as intensidades
+    // printf("hist[%d]: %d\n",i,hist[i]);
+    // }
 
+    // printf("histogram ok\n");
     return hist;
 }
 
-double calcError (Img* pic,int x, int y,int height, int width)
-{
-    unsigned char** gray = grayscale(pic,x,y,height,width);
-    int* hist = histogram(gray,x,y,height,width);
+float calcError(Img* pic, int x, int y, int height, int width) {
+    unsigned char** gray = grayscale(pic, x, y, height, width);
+    int* hist = histogram(gray, x, y, height, width);
 
-    //***************************************//
+    int i, j;
+    double avgI = 0, sum = 0, size = (height * width);
+    float error, aux = 1.0 / size;
 
-    int i,j;
-    unsigned long avgI = 0, size = (height * width);
-    double error, aux, sum = 0;
-    for (i=0;i<256;i++){
+    for (i = 0; i < 256; i++) {
         avgI += (i * hist[i]);
-        // printf("i: %d\n",i);
-        // printf("hist[i]: %d\n",hist[i]);
-        // printf("(i * hist[i]): %d\n",(i * hist[i]));
-        // printf("avgI: %d\n",avgI);
     }
-    avgI = avgI/size;
-    // printf("avgI: %d\n",avgI);
+    avgI = avgI / size;
 
-    for (i=x;i<(height+x);i++){
-        for (j=y;j<(width+y);j++){
-            aux = (double) gray[i][j];
-            aux = (aux - avgI);
-            sum += aux * aux;
+    for (i = 0; i < width; i++) {
+        for (j = 0; j < height; j++) {
+            sum += (gray[i][j] - avgI) * (gray[i][j] - avgI);
         }
     }
 
-    aux = sum / size;
-    error = sqrt(aux);
+    error = sqrt(aux * sum);
 
-    printf("Size: %d\n",size);
-    // printf("avgI: %d\n",avgI);
-    printf("Sum: %f\n",sum);
-    printf("sum/size: %f\n",aux);
-    printf("Calc Error: %f\n",error);
+    // printf("Size: %.1f\n",size);
+    // // printf("avgI: %d\n",avgI);
+    // printf("Sum: %.1f\n",sum);
+    // printf("sum/size: %.1f\n",aux);
+    // printf("Calc Error: %.1f\n",error);
 
-    for (i=0;i<height;i++){
-		free(gray[i]);
-	}
+    // Libera a memória alocada para gray e hist
+    for (i = 0; i < width; i++) {
+        free(gray[i]);
+    }
     free(gray);
     free(hist);
+
+    // printf("calcError ok\n");
     return error;
 }
 
-QuadNode* newQuadtree (Img* pic,double minError,int x, int y,int height, int width){
-    double error = calcError(pic,x,y,height,width);
+QuadNode* newQuadtree (Img* pic,float minError,int x, int y,int height, int width){
+    // onde 'x' é a coordenada da altura (height) e 'y' da largura (width)
+    float error = calcError(pic,x,y,height,width);
     unsigned char* avg = avgColour(pic,x,y,height,width);
     QuadNode* raiz = newNode(x,y,width,height);
     raiz->color[0] = avg[0];
     raiz->color[1] = avg[1];
     raiz->color[2] = avg[2];
-    if ((error < minError)||(height==1)||(width==1)){ // condição de parada recursiva
+    if (error < minError){ // condição de parada recursiva
         raiz->status = CHEIO;
     } else {
         raiz->status = PARCIAL;
         raiz->NW = newQuadtree(pic,minError,x,y,(height/2),(width/2));
-        raiz->NE = newQuadtree(pic,minError,(height/2),y,(height/2),(width/2));
-        raiz->SE = newQuadtree(pic,minError,(height/2),(width/2),(height/2),(width/2));
-        raiz->SW = newQuadtree(pic,minError,x,(width/2),(height/2),(width/2));
+        // printf("NW CRIADO");
+        raiz->NE = newQuadtree(pic,minError,x,(height/2)-1,(height/2),(width/2));
+        // printf("NE CRIADO");
+        raiz->SE = newQuadtree(pic,minError,(height/2)-1,(width/2)-1,(height/2),(width/2));
+        // printf("SE CRIADO");
+        raiz->SW = newQuadtree(pic,minError,(height/2)-1,y,(height/2),(width/2));
+        // printf("SW CRIADO");
     }
     free(avg);
     return raiz;
