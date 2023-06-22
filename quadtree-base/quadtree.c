@@ -186,13 +186,12 @@ unsigned char** grayscale(Img* pic,int x, int y,int height, int width)
 	for (i=x;i<(height+x);i++){
 		for (j=y;j<(width+y);j++){
             aux = (0.3 * (pixels[i][j].r)) + (0.59 * (pixels[i][j].g)) + (0.11 * (pixels[i][j].b));
-			gray[i][j] = aux;
+			gray[i-x][j-y] = aux;
 		}
 	}
 
 	return gray;
 }
-
 unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
 {
 	int i,j;
@@ -226,14 +225,25 @@ unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
 
 int* histogram (unsigned char** grayI,int x, int y,int height, int width)
 {
-    int i,j;
+    int h,i,j;
     int *hist = malloc(256 * sizeof(int));
+
+    for (i=0;i<256;i++){
+        hist[i] = 0;
+    }
 
     for (i=x;i<(height+x);i++){
         for (j=y;j<(width+y);j++){
             hist[grayI[i][j]]++;
+            // printf("grayI: %d\n",grayI[i][j]);
+            // printf("hist: %d\n",hist[grayI[i][j]]);
         }
     }
+
+    printf("hist: %d\n",hist[0]);
+    printf("hist: %d\n",hist[1]);
+    printf("hist: %d\n",hist[2]);
+    printf("hist: %d\n",hist[255]);
 
     return hist;
 }
@@ -246,8 +256,7 @@ double calcError (Img* pic,int x, int y,int height, int width)
     //***************************************//
 
     int i,j;
-    int a = 0, b = 0;
-    int avgI = 0, size = (height * width);
+    unsigned long avgI = 0, size = (height * width);
     double error, aux, sum = 0;
     for (i=0;i<256;i++){
         avgI += (i * hist[i]);
@@ -261,27 +270,20 @@ double calcError (Img* pic,int x, int y,int height, int width)
 
     for (i=x;i<(height+x);i++){
         for (j=y;j<(width+y);j++){
-            aux = gray[a++][b++];
+            aux = (double) gray[i][j];
             aux = (aux - avgI);
             sum += aux * aux;
-            printf("i: %d\n",i);
-            printf("j: %d\n",j);
-            printf("gray[i][j]: %d\n",gray[a][b]);
-            printf("avgI: %d\n",avgI);
-            // printf("aux: %d\n",aux);
-            printf("Sum: %d\n",sum);
         }
     }
 
+    aux = sum / size;
+    error = sqrt(aux);
 
-    aux = 1 / size;
-    error = sqrt(aux * sum);
-
-    // printf("Size: %d\n",size);
-    // printf("Sum: %d\n",sum);
-    // printf("1/size: %d\n",aux);
-    // printf("(1/size) * sum: %d\n", (aux * sum));
-    // printf("Calc Error: %d\n",error);
+    printf("Size: %d\n",size);
+    // printf("avgI: %d\n",avgI);
+    printf("Sum: %f\n",sum);
+    printf("sum/size: %f\n",aux);
+    printf("Calc Error: %f\n",error);
 
     for (i=0;i<height;i++){
 		free(gray[i]);
@@ -298,7 +300,7 @@ QuadNode* newQuadtree (Img* pic,double minError,int x, int y,int height, int wid
     raiz->color[0] = avg[0];
     raiz->color[1] = avg[1];
     raiz->color[2] = avg[2];
-    if (error < minError){ // condição de parada recursiva
+    if ((error < minError)||(height==1)||(width==1)){ // condição de parada recursiva
         raiz->status = CHEIO;
     } else {
         raiz->status = PARCIAL;
