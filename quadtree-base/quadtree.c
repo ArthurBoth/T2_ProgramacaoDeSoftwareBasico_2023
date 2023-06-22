@@ -239,11 +239,10 @@ int* histogram (unsigned char** grayI,int x, int y,int height, int width)
             // printf("hist: %d\n",hist[grayI[i][j]]);
         }
     }
-
-    printf("hist: %d\n",hist[0]);
-    printf("hist: %d\n",hist[1]);
-    printf("hist: %d\n",hist[2]);
-    printf("hist: %d\n",hist[255]);
+	
+	for (i=0;i<256;i++){ // imprime a quantidade de pixeis de todas as intensidades
+    printf("hist[%d]: %d\n",i,hist[i]);
+    }
 
     return hist;
 }
