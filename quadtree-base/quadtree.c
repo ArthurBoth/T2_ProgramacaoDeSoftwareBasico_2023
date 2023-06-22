@@ -46,7 +46,7 @@ QuadNode* geraQuadtree(Img* pic, float minError)
 // COMENTE a linha abaixo quando seu algoritmo ja estiver funcionando
 // Caso contrario, ele ira gerar uma arvore de teste com 3 nodos
 
-//#define DEMO
+// #define DEMO
 #ifdef DEMO
 
     /************************************************************/
@@ -189,7 +189,6 @@ unsigned char** grayscale(Img* pic,int x, int y,int height, int width)
 			gray[i-y][j-x] = aux;
 		}
 	}
-    // printf("grayscale ok\n");
 	return gray;
 }
 unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
@@ -211,16 +210,6 @@ unsigned char* avgColour(Img* pic,int x, int y,int height, int width)
     avg[0] = (unsigned char) (red/size);
     avg[1] = (unsigned char) (green/size);
     avg[2] = (unsigned char) (blue/size);
-
-    // printf("RED: %d\n",red);
-    // printf("GREEN: %d\n",green);
-    // printf("BLUE: %d\n",blue);
-    // printf("SIZE: %d\n",size);
-    // printf("RED/SIZE: %d\n",avg[0]);
-    // printf("GREEN/SIZE: %d\n",avg[1]);
-    // printf("BLUE/SIZE: %d\n",avg[2]);
-
-    // printf("avgColour ok\n");
     return avg;
 }
 
@@ -237,16 +226,8 @@ int* histogram (unsigned char** grayI,int x, int y,int height, int width)
         for (j=0;j<(height);j++){
             aux = grayI[i][j];
             hist[aux]++;
-            // printf("grayI: %d\n",grayI[i][j]);
-            // printf("hist: %d\n",hist[grayI[i][j]]);
         }
     }
-	
-	// for (i=0;i<256;i++){ // imprime a quantidade de pixeis de todas as intensidades
-    // printf("hist[%d]: %d\n",i,hist[i]);
-    // }
-
-    // printf("histogram ok\n");
     return hist;
 }
 
@@ -271,12 +252,6 @@ float calcError(Img* pic, int x, int y, int height, int width) {
 
     error = sqrt(aux * sum);
 
-    // printf("Size: %.1f\n",size);
-    // // printf("avgI: %d\n",avgI);
-    // printf("Sum: %.1f\n",sum);
-    // printf("sum/size: %.1f\n",aux);
-    // printf("Calc Error: %.1f\n",error);
-
     // Libera a memória alocada para gray e hist
     for (i = 0; i < width; i++) {
         free(gray[i]);
@@ -284,14 +259,14 @@ float calcError(Img* pic, int x, int y, int height, int width) {
     free(gray);
     free(hist);
 
-    // printf("calcError ok\n");
     return error;
 }
 
 QuadNode* newQuadtree (Img* pic,float minError,int x, int y,int height, int width){
     // onde 'x' é a coordenada da altura (height) e 'y' da largura (width)
+    int h = height/2, w = width/2;
     float error = calcError(pic,x,y,height,width);
-    unsigned char* avg = avgColour(pic,x,y,height,width);
+    unsigned char* avg = avgColour(pic,x,y,heiht,width);
     QuadNode* raiz = newNode(x,y,width,height);
     raiz->color[0] = avg[0];
     raiz->color[1] = avg[1];
@@ -300,14 +275,10 @@ QuadNode* newQuadtree (Img* pic,float minError,int x, int y,int height, int widt
         raiz->status = CHEIO;
     } else {
         raiz->status = PARCIAL;
-        raiz->NW = newQuadtree(pic,minError,x,y,(height/2),(width/2));
-        // printf("NW CRIADO");
-        raiz->NE = newQuadtree(pic,minError,x,(height/2)-1,(height/2),(width/2));
-        // printf("NE CRIADO");
-        raiz->SE = newQuadtree(pic,minError,(height/2)-1,(width/2)-1,(height/2),(width/2));
-        // printf("SE CRIADO");
-        raiz->SW = newQuadtree(pic,minError,(height/2)-1,y,(height/2),(width/2));
-        // printf("SW CRIADO");
+        raiz->NW = newQuadtree(pic,minError,x,y,h,w);
+        raiz->NE = newQuadtree(pic,minError,x,w,h,w);
+        raiz->SE = newQuadtree(pic,minError,h,w,h,w);
+        raiz->SW = newQuadtree(pic,minError,h,y,h,w);
     }
     free(avg);
     return raiz;
