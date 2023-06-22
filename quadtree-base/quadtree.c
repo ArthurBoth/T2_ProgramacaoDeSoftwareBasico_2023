@@ -231,7 +231,8 @@ int* histogram (unsigned char** grayI,int x, int y,int height, int width)
     return hist;
 }
 
-float calcError(Img* pic, int x, int y, int height, int width) {
+float calcError(Img* pic, int x, int y, int height, int width)
+{
     unsigned char** gray = grayscale(pic, x, y, height, width);
     int* hist = histogram(gray, x, y, height, width);
 
@@ -262,11 +263,12 @@ float calcError(Img* pic, int x, int y, int height, int width) {
     return error;
 }
 
-QuadNode* newQuadtree (Img* pic,float minError,int x, int y,int height, int width){
+QuadNode* newQuadtree (Img* pic,float minError,int x, int y,int height, int width)
+{
     // onde 'x' é a coordenada da altura (height) e 'y' da largura (width)
     int h = height/2, w = width/2;
     float error = calcError(pic,x,y,height,width);
-    unsigned char* avg = avgColour(pic,x,y,heiht,width);
+    unsigned char* avg = avgColour(pic,x,y,height,width);
     QuadNode* raiz = newNode(x,y,width,height);
     raiz->color[0] = avg[0];
     raiz->color[1] = avg[1];
